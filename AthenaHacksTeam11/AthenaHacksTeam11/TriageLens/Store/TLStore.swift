@@ -22,7 +22,7 @@ final class TLStore: ObservableObject {
         self.activePatient = TLPatient(
             id: "P-0142",
             displayName: "Patient P-0142",
-            triage: .urgent,
+            triage: .stable,
             heartRate: 104,
             respRate: 22,
             confidence: 0.72,
@@ -80,7 +80,7 @@ final class TLStore: ObservableObject {
 
         self.dispatchDraft = TLDispatchSubmission(
             id: UUID(),
-            location: "—",
+            location: "",
             severity: .urgent,
             unitRequested: "ALS Unit",
             patientSummary: "Adult, difficulty breathing",
@@ -138,6 +138,7 @@ final class TLStore: ObservableObject {
     func escalateToDispatch() {
         dispatchDraft.severity = activePatient.triage
         dispatchDraft.patientSummary = buildPatientSummary(activePatient)
+        dispatchDraft.vitalsSnapshot = "HR \(activePatient.heartRate) • RR \(activePatient.respRate) • Conf \(Int(activePatient.confidence * 100))%"
         isDispatchSent = false
 
         let now = Date()
@@ -149,9 +150,30 @@ final class TLStore: ObservableObject {
 
     func sendDispatch() {
         let now = Date()
-        dispatchDraft.timeline.append(TLDispatchEvent(id: UUID(), time: now, title: "Sent to dispatch", detail: "Unit: \(dispatchDraft.unitRequested)"))
-        dispatchDraft.timeline.append(TLDispatchEvent(id: UUID(), time: now.addingTimeInterval(30), title: "Acknowledged", detail: "Dispatch confirmed receipt"))
+        let loc = dispatchDraft.location.trimmingCharacters(in: .whitespacesAndNewlines)
+        dispatchDraft.location = loc
+        dispatchDraft.vitalsSnapshot = "HR \(activePatient.heartRate) • RR \(activePatient.respRate) • Conf \(Int(activePatient.confidence * 100))%"
+
+        dispatchDraft.timeline.append(
+            TLDispatchEvent(
+                id: UUID(),
+                time: now,
+                title: "Sent to dispatch",
+                detail: "Unit: \(dispatchDraft.unitRequested) • Severity: \(dispatchDraft.severity.rawValue)"
+            )
+        )
         isDispatchSent = true
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 900_000_000)
+            dispatchDraft.timeline.append(
+                TLDispatchEvent(id: UUID(), time: Date(), title: "Acknowledged", detail: "Dispatch confirmed receipt")
+            )
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            dispatchDraft.timeline.append(
+                TLDispatchEvent(id: UUID(), time: Date(), title: "Unit en route", detail: "Proceeding to \(dispatchDraft.location.isEmpty ? "incident location" : dispatchDraft.location)")
+            )
+        }
 
         let incident = TLIncident(
             id: UUID(),

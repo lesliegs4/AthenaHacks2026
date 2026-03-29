@@ -16,16 +16,6 @@ struct TLIncidentLogsView: View {
     }
 }
 
-struct TLDispatchView: View {
-    var body: some View {
-        Text("Dispatch (building next)")
-            .foregroundStyle(TLTheme.ColorToken.textSecondary)
-            .padding(TLTheme.Spacing.lg)
-            .tlCard()
-            .padding(TLTheme.Spacing.lg)
-    }
-}
-
 struct TLTrainingReviewView: View {
     var body: some View {
         Text("Training Review (building next)")

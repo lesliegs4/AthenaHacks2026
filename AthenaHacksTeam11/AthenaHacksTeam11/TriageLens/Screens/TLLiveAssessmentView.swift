@@ -82,7 +82,7 @@ struct TLLiveAssessmentView: View {
             HStack {
                 TLSectionHeader(title: "Camera assessment", subtitle: "Decision support overlay")
                 Spacer(minLength: 0)
-                cameraToggle
+                // cameraToggle
                 statusTag
             }
 
@@ -95,7 +95,9 @@ struct TLLiveAssessmentView: View {
 
             HStack(spacing: TLTheme.Spacing.md) {
                 TLMetricCard(title: "Estimated HR", value: "\(displayHR) bpm", footnote: usingSmartSpectra ? "SmartSpectra" : "mock", tint: TLTheme.ColorToken.red, icon: "heart.fill")
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 TLMetricCard(title: "Estimated RR", value: "\(displayRR) rpm", footnote: usingSmartSpectra ? "SmartSpectra" : "mock", tint: TLTheme.ColorToken.blue, icon: "lungs.fill")
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             if !spectraKeyLabel.isEmpty {
@@ -107,31 +109,31 @@ struct TLLiveAssessmentView: View {
         .tlCard()
     }
 
-    private var cameraToggle: some View {
-        Button {
-            switchCamera()
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "camera.rotate")
-                    .font(.caption.weight(.semibold))
-                Text(cameraPosition == .front ? "Front" : "Back")
-                    .font(.caption.weight(.semibold))
-            }
-            .foregroundStyle(TLTheme.ColorToken.textSecondary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background(TLTheme.ColorToken.surface2)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(TLTheme.ColorToken.stroke, lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-        }
-        .buttonStyle(.plain)
-        .disabled(isSwitchingCamera)
-        .opacity(isSwitchingCamera ? 0.6 : 1)
-        .accessibilityLabel("Switch camera")
-    }
+//    private var cameraToggle: some View {
+//        Button {
+//            switchCamera()
+//        } label: {
+//            HStack(spacing: 8) {
+//                Image(systemName: "camera.rotate")
+//                    .font(.caption.weight(.semibold))
+//                Text(cameraPosition == .front ? "Front" : "Back")
+//                    .font(.caption.weight(.semibold))
+//            }
+//            .foregroundStyle(TLTheme.ColorToken.textSecondary)
+//            .padding(.horizontal, 10)
+//            .padding(.vertical, 8)
+//            .background(TLTheme.ColorToken.surface2)
+//            .overlay(
+//                RoundedRectangle(cornerRadius: 12)
+//                    .stroke(TLTheme.ColorToken.stroke, lineWidth: 1)
+//            )
+//            .clipShape(RoundedRectangle(cornerRadius: 12))
+//        }
+//        .buttonStyle(.plain)
+//        .disabled(isSwitchingCamera)
+//        .opacity(isSwitchingCamera ? 0.6 : 1)
+//        .accessibilityLabel("Switch camera")
+//    }
 
     private var cameraPreview: some View {
         ZStack {

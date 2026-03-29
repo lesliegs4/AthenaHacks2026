@@ -85,6 +85,11 @@
             value = "J5wT730KAi4mhkhrIYCJY7addVgcUnph7FZDUSJk"
             isEnabled = "YES">
          </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "MONGODB_DATA_API_APP_ID"
+            value = ""
+            isEnabled = "YES">
+         </EnvironmentVariable>
       </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction

@@ -26,7 +26,7 @@ struct TLMetricCard: View {
     var icon: String? = nil
 
     var body: some View {
-        HStack(alignment: .top, spacing: TLTheme.Spacing.md) {
+        HStack(alignment: .top, spacing: TLTheme.Spacing.sm) {
             RoundedRectangle(cornerRadius: 12)
                 .fill(tint.opacity(0.20))
                 .overlay(
@@ -34,24 +34,35 @@ struct TLMetricCard: View {
                         .foregroundStyle(tint)
                         .font(.title3.weight(.semibold))
                 )
-                .frame(width: 44, height: 44)
+                .frame(width: 40, height: 40)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(TLTheme.ColorToken.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
+                    .allowsTightening(true)
                 Text(value)
                     .font(.title2.weight(.bold))
                     .foregroundStyle(TLTheme.ColorToken.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .allowsTightening(true)
+                    .monospacedDigit()
+                    .layoutPriority(2)
                 if let footnote {
                     Text(footnote)
                         .font(.caption)
                         .foregroundStyle(TLTheme.ColorToken.textTertiary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .allowsTightening(true)
                 }
             }
-
-            Spacer(minLength: 0)
+            .layoutPriority(1)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .tlCard()
     }
 }
