@@ -2,11 +2,7 @@ import SwiftUI
 
 struct TLMassCasualtyView: View {
     var body: some View {
-        Text("Mass Casualty Mode (building next)")
-            .foregroundStyle(TLTheme.ColorToken.textSecondary)
-            .padding(TLTheme.Spacing.lg)
-            .tlCard()
-            .padding(TLTheme.Spacing.lg)
+        MassCasualityModeView()
     }
 }
 

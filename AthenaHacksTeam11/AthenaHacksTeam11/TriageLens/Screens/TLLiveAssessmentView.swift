@@ -201,7 +201,7 @@ struct TLLiveAssessmentView: View {
     private var overlayTriage: some View {
         VStack(alignment: .trailing, spacing: 8) {
             TLTriageBadge(status: store.activePatient.triage)
-            if isRunning {
+            if isRecording {
                 TLOverlaySmallTag(text: "REC", tint: TLTheme.ColorToken.red)
             }
             TLOverlaySmallTag(text: cameraPosition == .front ? "FRONT" : "BACK", tint: TLTheme.ColorToken.blue)
@@ -639,7 +639,15 @@ extension TLLiveAssessmentView {
     }
 
     private var isRunning: Bool {
-        usingSmartSpectra ? vitalsProcessor.isRecording : store.isProcessingVitals
+        if usingSmartSpectra {
+            switch vitalsProcessor.processingStatus {
+            case .processing, .processed:
+                return true
+            case .idle, .error:
+                return false
+            }
+        }
+        return store.isProcessingVitals
     }
 
     private var displayHR: Int {

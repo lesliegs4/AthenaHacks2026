@@ -18,14 +18,22 @@ struct TLDashboardView: View {
                         subtitle: "Camera-based vitals + triage badge",
                         icon: "camera.viewfinder",
                         tint: TLTheme.ColorToken.blue
-                    ) { store.selectedRoute = .liveAssessment }
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            store.selectedRoute = .liveAssessment
+                        }
+                    }
 
                     actionCard(
                         title: "Mass Casualty Mode",
                         subtitle: "Sort and tag multiple patients quickly",
                         icon: "person.3.fill",
                         tint: TLTheme.ColorToken.amber
-                    ) { store.selectedRoute = .massCasualty }
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            store.selectedRoute = .massCasualty
+                        }
+                    }
 
                     actionCard(
                         title: "Escalate to Dispatch",
