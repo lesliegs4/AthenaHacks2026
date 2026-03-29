@@ -762,27 +762,29 @@ extension TLLiveAssessmentView {
             return
         }
 
+        // Clear the last frame immediately so we don't "freeze" on the prior camera image.
+        vitalsProcessor.imageOutput = nil
+
         // Avoid conflicts: stop pipeline, set camera, restart (with delays to let capture fully tear down).
         let wasRecording = vitalsProcessor.isRecording
         if wasRecording { vitalsProcessor.stopRecording() }
         vitalsProcessor.stopProcessing()
 
-        // Give SmartSpectra time to release the previous camera input before switching.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.05) {
-            spectraSDK.setCameraPosition(nextPosition)
-        }
+        // Set desired camera position for the next pipeline start.
+        spectraSDK.setCameraPosition(nextPosition)
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.45) {
+        // Give SmartSpectra time to release the previous camera input before restarting.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
             vitalsProcessor.startProcessing()
         }
 
         if wasRecording {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.10) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.55) {
                 vitalsProcessor.startRecording()
             }
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.60) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.05) {
             isSwitchingCamera = false
         }
     }
