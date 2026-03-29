@@ -11,6 +11,10 @@ struct TLLiveAssessmentView: View {
     @State private var spectraKeyLabel: String = ""
     @State private var spectraKeyLoaded: Bool = false
     @State private var usingSmartSpectra: Bool = false
+    @State private var cameraPosition: AVCaptureDevice.Position = .front
+    @State private var isSwitchingCamera: Bool = false
+    @State private var isStartingSmartSpectra: Bool = false
+    @State private var cameraPermissionDenied: Bool = false
 
     @ObservedObject private var spectraSDK = SmartSpectraSwiftSDK.shared
     @ObservedObject private var vitalsProcessor = SmartSpectraVitalsProcessor.shared
@@ -41,7 +45,7 @@ struct TLLiveAssessmentView: View {
             }
             .padding(TLTheme.Spacing.lg)
         }
-        .onAppear { startAssessment() }
+        .onAppear { ensureCameraAccessAndStart() }
         .onDisappear { stopAssessment() }
     }
 
@@ -78,6 +82,7 @@ struct TLLiveAssessmentView: View {
             HStack {
                 TLSectionHeader(title: "Camera assessment", subtitle: "Decision support overlay")
                 Spacer(minLength: 0)
+                cameraToggle
                 statusTag
             }
 
@@ -102,6 +107,32 @@ struct TLLiveAssessmentView: View {
         .tlCard()
     }
 
+    private var cameraToggle: some View {
+        Button {
+            switchCamera()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "camera.rotate")
+                    .font(.caption.weight(.semibold))
+                Text(cameraPosition == .front ? "Front" : "Back")
+                    .font(.caption.weight(.semibold))
+            }
+            .foregroundStyle(TLTheme.ColorToken.textSecondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(TLTheme.ColorToken.surface2)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(TLTheme.ColorToken.stroke, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .disabled(isSwitchingCamera)
+        .opacity(isSwitchingCamera ? 0.6 : 1)
+        .accessibilityLabel("Switch camera")
+    }
+
     private var cameraPreview: some View {
         ZStack {
             if usingSmartSpectra, let image = vitalsProcessor.imageOutput {
@@ -113,7 +144,26 @@ struct TLLiveAssessmentView: View {
                 TLMockCameraPreview(isActive: isRunning)
             }
 
-            if usingSmartSpectra, vitalsProcessor.imageOutput == nil, isRunning {
+            if cameraPermissionDenied {
+                VStack(spacing: 8) {
+                    Text("Camera permission needed")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(TLTheme.ColorToken.text)
+                    Text("Enable Camera access in Settings to use live preview.")
+                        .font(.footnote)
+                        .foregroundStyle(TLTheme.ColorToken.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
+                }
+                .padding(14)
+                .background(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(TLTheme.ColorToken.stroke, lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .padding()
+            } else if usingSmartSpectra, vitalsProcessor.imageOutput == nil, isRunning {
                 VStack(spacing: 8) {
                     Text("Starting SmartSpectra…")
                         .font(.headline.weight(.semibold))
@@ -154,6 +204,7 @@ struct TLLiveAssessmentView: View {
             if isRunning {
                 TLOverlaySmallTag(text: "REC", tint: TLTheme.ColorToken.red)
             }
+            TLOverlaySmallTag(text: cameraPosition == .front ? "FRONT" : "BACK", tint: TLTheme.ColorToken.blue)
         }
         .padding(12)
     }
@@ -320,6 +371,7 @@ struct TLLiveAssessmentView: View {
                 .stroke(TLTheme.ColorToken.stroke, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .accessibilityHint(cameraPosition == .front ? "Front camera" : "Back camera")
     }
 }
 
@@ -615,6 +667,31 @@ extension TLLiveAssessmentView {
         ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
     }
 
+    private func ensureCameraAccessAndStart() {
+        guard !isStartingSmartSpectra else { return }
+
+        // If permission is denied/restricted, SmartSpectra won't be able to deliver frames.
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        switch status {
+        case .authorized:
+            cameraPermissionDenied = false
+            startAssessment()
+        case .notDetermined:
+            isStartingSmartSpectra = true
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    self.isStartingSmartSpectra = false
+                    self.cameraPermissionDenied = !granted
+                    if granted {
+                        self.startAssessment()
+                    }
+                }
+            }
+        default:
+            cameraPermissionDenied = true
+        }
+    }
+
     private func startAssessment() {
         // Always keep confidence + UI dynamic
         store.startVitals()
@@ -644,12 +721,11 @@ extension TLLiveAssessmentView {
             return
         }
 
-        usingSmartSpectra = true
         spectraSDK.setApiKey(apiKey)
         spectraSDK.setSmartSpectraMode(.continuous)
         spectraSDK.showControlsInScreeningView(true)
-        spectraSDK.setCameraPosition(.front)
-
+        usingSmartSpectra = true
+        spectraSDK.setCameraPosition(cameraPosition)
         vitalsProcessor.startProcessing()
     }
 
@@ -671,6 +747,43 @@ extension TLLiveAssessmentView {
         } else {
             // Mock fallback: use the vitals timer as "recording" signal.
             store.isProcessingVitals ? store.stopVitals() : store.startVitals()
+        }
+    }
+
+    private func switchCamera() {
+        guard !isSwitchingCamera else { return }
+        isSwitchingCamera = true
+
+        let nextPosition: AVCaptureDevice.Position = (cameraPosition == .front) ? .back : .front
+        cameraPosition = nextPosition
+
+        guard usingSmartSpectra, !cameraPermissionDenied else {
+            isSwitchingCamera = false
+            return
+        }
+
+        // Avoid conflicts: stop pipeline, set camera, restart (with delays to let capture fully tear down).
+        let wasRecording = vitalsProcessor.isRecording
+        if wasRecording { vitalsProcessor.stopRecording() }
+        vitalsProcessor.stopProcessing()
+
+        // Give SmartSpectra time to release the previous camera input before switching.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.05) {
+            spectraSDK.setCameraPosition(nextPosition)
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.45) {
+            vitalsProcessor.startProcessing()
+        }
+
+        if wasRecording {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.10) {
+                vitalsProcessor.startRecording()
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.60) {
+            isSwitchingCamera = false
         }
     }
 }

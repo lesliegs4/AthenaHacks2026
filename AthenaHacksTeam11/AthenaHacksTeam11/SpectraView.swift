@@ -13,25 +13,14 @@ import AVFoundation
 struct SpectraView: View {
     @ObservedObject private var sdk = SmartSpectraSwiftSDK.shared
     @ObservedObject private var vitalsProcessor = SmartSpectraVitalsProcessor.shared
-    private let apiKeyLoaded: Bool
-    private let apiKeySourceLabel: String
+    @State private var apiKeyLoaded: Bool = false
+    @State private var apiKeySourceLabel: String = ""
+    @State private var didConfigureSDK: Bool = false
 
     init() {
-        let loaded = TLSmartSpectraKey.load()
-        self.apiKeyLoaded = loaded.value != nil
-        self.apiKeySourceLabel = loaded.sourceLabel
-        if let apiKey = loaded.value {
-            sdk.setApiKey(apiKey)
-        }
-
-        #if targetEnvironment(simulator)
-        // Avoid noisy simulator camera failures (-11814 "Cannot Record").
-        #else
-        // Make the SDK feel "alive" on first launch.
-        sdk.setSmartSpectraMode(.continuous)
-        sdk.showControlsInScreeningView(true)
-        sdk.setCameraPosition(.front)
-        #endif
+        // Intentionally empty.
+        // SwiftUI may recreate Views frequently; avoid SDK side effects in init()
+        // (it can make controls like camera switching appear "stuck").
     }
 
     var body: some View {
@@ -125,6 +114,26 @@ struct SpectraView: View {
             .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .padding()
+        }
+        .onAppear {
+            guard !didConfigureSDK else { return }
+            didConfigureSDK = true
+
+            let loaded = TLSmartSpectraKey.load()
+            apiKeyLoaded = loaded.value != nil
+            apiKeySourceLabel = loaded.sourceLabel
+
+            if let apiKey = loaded.value {
+                sdk.setApiKey(apiKey)
+            }
+
+            #if targetEnvironment(simulator)
+            // Avoid noisy simulator camera failures (-11814 "Cannot Record").
+            #else
+            sdk.setSmartSpectraMode(.continuous)
+            sdk.showControlsInScreeningView(true)
+            // Do NOT force camera position here; let the SDK UI/user choice control it.
+            #endif
         }
         .onDisappear {
             vitalsProcessor.stopRecording()
