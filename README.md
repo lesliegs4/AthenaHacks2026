@@ -34,5 +34,5 @@ In the future we hope to be able to integrate some hardware components with our 
 Presage, Swift
 
 ## Edit: AthenaHacks 2026
-Winner Best Hack by Bloomberg Engineering
-Winner Best Overall
+- Winner Best Overall
+- Winner Best Hack by Bloomberg Engineering
